@@ -1,6 +1,6 @@
 {
     "name": "@kderbyma/braid",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A Language-Agnostic Co-routine Framework - weave independent asynchronous strands into synchronized cords",
     "author": "Kyle Derby MacInnis",
     "license": "MIT",
