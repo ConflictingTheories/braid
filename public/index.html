@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Braid — Async Co-routine Framework</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --text-primary: #f0f0f5;
+            --text-secondary: #8888a0;
+            --accent: #ff6b9d;
+            --accent-glow: rgba(255, 107, 157, 0.3);
+            --accent-2: #6bffb8;
+            --accent-2-glow: rgba(107, 255, 184, 0.2);
+            --border: #2a2a3a;
+            --code-bg: #15151f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 20%, var(--accent-glow) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, var(--accent-2-glow) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.8);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        .nav-links .github {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 6rem 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .tagline {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .hero .description {
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 30px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Install code */
+        .install-code {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin: 2rem auto;
+            max-width: 500px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .install-code .prompt {
+            color: var(--accent-2);
+            margin-right: 0.5rem;
+        }
+
+        .install-code .command {
+            color: var(--text-primary);
+        }
+
+        .install-code .comment {
+            color: var(--text-secondary);
+        }
+
+        /* Features */
+        .features {
+            padding: 4rem 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-glow);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Use Cases */
+        .use-cases {
+            padding: 4rem 0;
+            background: var(--bg-secondary);
+        }
+
+        .use-case {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            margin-bottom: 4rem;
+        }
+
+        .use-case:nth-child(even) {
+            direction: rtl;
+        }
+
+        .use-case:nth-child(even)>* {
+            direction: ltr;
+        }
+
+        .use-case-content h3 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .use-case-content p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .use-case-code {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .use-case-code .keyword {
+            color: var(--accent);
+        }
+
+        .use-case-code .string {
+            color: var(--accent-2);
+        }
+
+        .use-case-code .function {
+            color: #a78bfa;
+        }
+
+        .use-case-code .comment {
+            color: var(--text-secondary);
+        }
+
+        /* Demo Section */
+        .demo-section {
+            padding: 4rem 0;
+        }
+
+        .demo-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .demo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .demo-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .demo-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-tight {
+            background: rgba(255, 107, 157, 0.2);
+            color: var(--accent);
+        }
+
+        .badge-loose {
+            background: rgba(107, 255, 184, 0.2);
+            color: var(--accent-2);
+        }
+
+        .demo-output {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .demo-output .output-line {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .demo-output .output-line:last-child {
+            border-bottom: none;
+        }
+
+        .demo-output .index {
+            color: var(--text-secondary);
+            margin-right: 0.75rem;
+        }
+
+        .demo-output .value {
+            color: var(--accent-2);
+        }
+
+        /* Live Demo */
+        .live-demo {
+            padding: 4rem 0;
+            background: var(--bg-secondary);
+        }
+
+        .interactive-demo {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .demo-controls button {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .demo-controls button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .demo-controls button.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .demo-output.live {
+            min-height: 150px;
+        }
+
+        /* API Section */
+        .api-section {
+            padding: 4rem 0;
+        }
+
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .api-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .api-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .api-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .api-example {
+            background: var(--code-bg);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .use-case {
+                grid-template-columns: 1fr;
+            }
+
+            .use-case:nth-child(even) {
+                direction: ltr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">🧶 <span>Braid</span></div>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#use-cases">Use Cases</a></li>
+                    <li><a href="#demos">Demos</a></li>
+                    <li><a href="#api">API</a></li>
+                    <li><a href="https://github.com/ConflictingTheories/braid" class="github" target="_blank">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                            </svg>
+                            GitHub
+                        </a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>🧶 Braid</h1>
+                <p class="tagline">Weave async strands into synchronized cords</p>
+                <p class="description">
+                    A language-agnostic co-routine framework for managing concurrent asynchronous flows.
+                    Create elegant solutions for streams, real-time data, and parallel processing.
+                </p>
+
+                <div class="install-code">
+                    <span class="prompt">$</span>
+                    <span class="command">yarn add braid</span>
+                    <span class="comment"># or npm install braid</span>
+                </div>
+
+                <div class="cta-buttons">
+                    <a href="#demos" class="btn btn-primary">Try Demos</a>
+                    <a href="https://github.com/ConflictingTheories/braid" class="btn btn-secondary" target="_blank">
+                        View on GitHub
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="container">
+                <h2 class="section-title">Why Braid?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔄</div>
+                        <h3>Lock-Step Synchronization</h3>
+                        <p>Coordinate multiple async streams with atomic precision. Every value is perfectly aligned.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌊</div>
+                        <h3>Flexible Tension Modes</h3>
+                        <p>Choose between Tight (synchronized), Loose (non-blocking), or Frayed (fault-tolerant) modes.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🧩</div>
+                        <h3>Composable Design</h3>
+                        <p>Braids can become fibers, fibers can become braids. Deep composition made simple.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Zero Dependencies</h3>
+                        <p>Lightweight with no external dependencies. Just pure TypeScript and async generators.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📦</div>
+                        <h3>Universal Imports</h3>
+                        <p>Works with ESM and CommonJS. Use it everywhere — Node.js, browsers, Deno.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>TypeScript Native</h3>
+                        <p>Full type safety with generics. Your IDE knows exactly what's flowing through.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="use-cases" id="use-cases">
+            <div class="container">
+                <h2 class="section-title">Use Cases</h2>
+
+                <div class="use-case">
+                    <div class="use-case-content">
+                        <h3>📊 Real-time Data Pipelines</h3>
+                        <p>Combine multiple data streams with different speeds. Handle stock tickers, sensor data, or
+                            user activity feeds while maintaining proper synchronization.</p>
+                        <a href="#demos" class="btn btn-secondary">See Demo →</a>
+                    </div>
+                    <div class="use-case-code">
+                        <span class="comment">// Stock ticker + news feed</span>
+                        <span class="keyword">const</span> ticker = <span class="function">interval</span>(price, 100);
+                        <span class="keyword">const</span> news = <span class="function">interval</span>(headline, 500);
+
+                        <span class="keyword">const</span> feed = <span class="keyword">new</span> <span
+                            class="function">Braid</span>([ticker, news], {
+                        tension: <span class="function">Tension</span>.<span class="string">Loose</span>
+                        }).<span class="function">bind</span>(<span class="string">([p, h])</span> => <span
+                            class="string">`$</span>${p}<span class="string"> · </span>${h}<span
+                            class="string">`</span>);
+                    </div>
+                </div>
+
+                <div class="use-case">
+                    <div class="use-case-content">
+                        <h3>🎮 Game State Management</h3>
+                        <p>Coordinate player inputs, game logic, and network sync. Create smooth multiplayer experiences
+                            with predictable state updates.</p>
+                        <a href="#demos" class="btn btn-secondary">See Demo →</a>
+                    </div>
+                    <div class="use-case-code">
+                        <span class="comment">// Player inputs + game loop</span>
+                        <span class="keyword">const</span> keys = <span class="function">fromArray</span>(keyEvents);
+                        <span class="keyword">const</span> physics = <span class="function">counter</span>(0, 16);
+                        <span class="keyword">const</span> network = <span class="function">interval</span>(serverState,
+                        50);
+
+                        <span class="keyword">const</span> gameState = <span class="keyword">new</span> <span
+                            class="function">Braid</span>([keys, physics, network]);
+                    </div>
+                </div>
+
+                <div class="use-case">
+                    <div class="use-case-content">
+                        <h3>🌐 API Aggregation</h3>
+                        <p>Merge responses from multiple APIs with different latencies. Cache slow responses while
+                            processing fast ones.</p>
+                        <a href="#demos" class="btn btn-secondary">See Demo →</a>
+                    </div>
+                    <div class="use-case-code">
+                        <span class="comment">// Multiple API calls</span>
+                        <span class="keyword">const</span> userApi = <span class="function">fetchUser</span>(id);
+                        <span class="keyword">const</span> postsApi = <span class="function">fetchPosts</span>(id);
+                        <span class="keyword">const</span> notifApi = <span class="function">fetchNotifs</span>(id);
+
+                        <span class="keyword">const</span> profile = <span class="keyword">new</span> <span
+                            class="function">Braid</span>([userApi, postsApi, notifApi])
+                        .<span class="function">bind</span>(<span class="string">([user, posts, notifs])</span> => ({
+                        user, posts, notifs
+                        }));
+                    </div>
+                </div>
+
+                <div class="use-case">
+                    <div class="use-case-content">
+                        <h3>🎵 Audio/Video Processing</h3>
+                        <p>Synchronize audio tracks, video frames, and metadata. Perfect for media applications
+                            requiring precise timing.</p>
+                        <a href="#demos" class="btn btn-secondary">See Demo →</a>
+                    </div>
+                    <div class="use-case-code">
+                        <span class="comment">// Audio + video sync</span>
+                        <span class="keyword">const</span> audio = <span class="function">fromArray</span>(audioFrames);
+                        <span class="keyword">const</span> video = <span class="function">fromArray</span>(videoFrames);
+                        <span class="keyword">const</span> subtitles = <span
+                            class="function">fromArray</span>(subtitles);
+
+                        <span class="keyword">const</span> synced = <span class="keyword">new</span> <span
+                            class="function">Braid</span>([audio, video, subtitles]);
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo-section" id="demos">
+            <div class="container">
+                <h2 class="section-title">Demos</h2>
+
+                <div class="demo-container">
+                    <div class="demo-header">
+                        <span class="demo-title">🔒 Tight Braid — Lock-Step</span>
+                        <span class="demo-badge badge-tight">Tension.Tight</span>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        All strands advance together. Emits only when every fiber has yielded.
+                    </p>
+                    <div class="demo-output" id="tight-demo">
+                        <div class="output-line"><span class="index">[0]</span><span class="value">["A", 1]</span></div>
+                        <div class="output-line"><span class="index">[1]</span><span class="value">["B", 2]</span></div>
+                        <div class="output-line"><span class="index">[2]</span><span class="value">["C", 3]</span></div>
+                    </div>
+                </div>
+
+                <div class="demo-container">
+                    <div class="demo-header">
+                        <span class="demo-title">🌊 Loose Braid — Non-Blocking</span>
+                        <span class="demo-badge badge-loose">Tension.Loose</span>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Fast strands don't wait. Uses the last known value of slower strands.
+                    </p>
+                    <div class="demo-output" id="loose-demo">
+                        <div class="output-line"><span class="index">[0]</span><span class="value">["a", 1]</span></div>
+                        <div class="output-line"><span class="index">[1]</span><span class="value">["b", 1]</span></div>
+                        <div class="output-line"><span class="index">[2]</span><span class="value">["b", 2]</span></div>
+                        <div class="output-line"><span class="index">[3]</span><span class="value">["c", 2]</span></div>
+                    </div>
+                </div>
+
+                <div class="demo-container">
+                    <div class="demo-header">
+                        <span class="demo-title">🧩 Fiber Combinators</span>
+                        <span class="demo-badge badge-tight">map · filter · take</span>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Transform, filter, and limit streams with elegant combinators.
+                    </p>
+                    <div class="demo-output" id="combinator-demo">
+                        <div class="output-line"><span class="index">[0]</span><span class="value">0</span></div>
+                        <div class="output-line"><span class="index">[1]</span><span class="value">20</span></div>
+                        <div class="output-line"><span class="index">[2]</span><span class="value">40</span></div>
+                        <div class="output-line"><span class="index">[3]</span><span class="value">60</span></div>
+                        <div class="output-line"><span class="index">[4]</span><span class="value">80</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="live-demo" id="interactive">
+            <div class="container">
+                <h2 class="section-title">Interactive Demo</h2>
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">
+                    Click the buttons to run live demos with the Braid library
+                </p>
+
+                <div class="interactive-demo">
+                    <div class="demo-controls">
+                        <button id="btn-tight" class="active" onclick="runDemo('tight')">Tight Braid</button>
+                        <button id="btn-loose" onclick="runDemo('loose')">Loose Braid</button>
+                        <button id="btn-combine" onclick="runDemo('combine')">Combinators</button>
+                        <button id="btn-merge" onclick="runDemo('merge')">Merge</button>
+                        <button id="btn-bind" onclick="runDemo('bind')">Bind</button>
+                    </div>
+                    <div class="demo-output live" id="live-output">
+                        <div class="output-line" style="color: var(--text-secondary);">Click a button to run demo...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="api-section" id="api">
+            <div class="container">
+                <h2 class="section-title">API Reference</h2>
+
+                <div class="api-grid">
+                    <div class="api-card">
+                        <h3>Fiber<T>
+                        </h3>
+                        <p>Wraps an AsyncGenerator and provides identity and combinator methods.</p>
+                        <div class="api-example">
+                            const fiber = new Fiber(gen, { name: 'myFiber' });
+                            const mapped = fiber.map(x => x * 2);
+                            const filtered = fiber.filter(x => x > 10);
+                            const limited = fiber.take(5);
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <h3>Braid<Ts>
+                        </h3>
+                        <p>Weaves multiple Fibers together with configurable tension modes.</p>
+                        <div class="api-example">
+                            const braid = new Braid([a, b, c], {
+                            tension: Tension.Tight,
+                            timeout: 5000
+                            });
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <h3>Loom</h3>
+                        <p>Executor that runs Braids to completion with handlers.</p>
+                        <div class="api-example">
+                            await Loom.run(braid, (value, i) => {
+                            console.log(i, value);
+                            });
+
+                            const results = await Loom.collect(braid);
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <h3>Tension</h3>
+                        <p>Scheduling policy enum for Braid behavior.</p>
+                        <div class="api-example">
+                            Tension.Tight // Lock-step (default)
+                            Tension.Loose // Non-blocking
+                            Tension.Frayed // Fault-tolerant
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <h3>Combinators</h3>
+                        <p>Functions for combining and transforming fibers.</p>
+                        <div class="api-example">
+                            merge(a, b, c) // Fan-in
+                            zip(a, b) // Binary zip
+                            chain(a, b) // Sequential
+                            partition(f, pred) // Split by predicate
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <h3>Factories</h3>
+                        <p>Create fibers from common data sources.</p>
+                        <div class="api-example">
+                            fromArray([1,2,3])
+                            counter(0, 100) // 0,1,2... every 100ms
+                            interval('ping', 1000) // Every second
+                            just(value) // Single value
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/ConflictingTheories/braid">GitHub</a>
+                <a href="#">NPM Package</a>
+                <a href="#">Documentation</a>
+            </div>
+            <p>© 2024 Braid. Built by <a href="https://github.com/ConflictingTheories">ConflictingTheories</a></p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { Braid, Loom, Fiber, Tension, fromArray, counter, interval, just, merge, zip } from './dist/braid.js';
+
+        const output = document.getElementById('live-output');
+
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+
+        function addLine(index, value) {
+            const div = document.createElement('div');
+            div.className = 'output-line';
+            div.innerHTML = `<span class="index">[${index}]</span><span class="value">${JSON.stringify(value)}</span>`;
+            output.appendChild(div);
+        }
+
+        async function runDemo(type) {
+            // Update buttons
+            document.querySelectorAll('.demo-controls button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+
+            clearOutput();
+
+            switch (type) {
+                case 'tight':
+                    await runTightDemo();
+                    break;
+                case 'loose':
+                    await runLooseDemo();
+                    break;
+                case 'combine':
+                    await runCombineDemo();
+                    break;
+                case 'merge':
+                    await runMergeDemo();
+                    break;
+                case 'bind':
+                    await runBindDemo();
+                    break;
+            }
+        }
+
+        async function runTightDemo() {
+            const letters = fromArray(['A', 'B', 'C', 'D'], 'letters');
+            const numbers = fromArray([1, 2, 3, 4], 'numbers');
+            const braid = new Braid([letters, numbers]);
+
+            let i = 0;
+            await Loom.run(braid, (val) => {
+                addLine(i++, val);
+            });
+        }
+
+        async function runLooseDemo() {
+            const fast = fromArray(['a', 'b', 'c', 'd', 'e'], 'fast');
+            const slow = fromArray([1, 2, 3], 'slow');
+            const braid = new Braid([fast, slow], { tension: Tension.Loose });
+
+            let i = 0;
+            await Loom.run(braid, (val) => {
+                addLine(i++, val);
+            });
+        }
+
+        async function runCombineDemo() {
+            const nums = counter(0);
+            const processed = nums
+                .filter(n => n % 2 === 0)
+                .map(n => n * 10)
+                .take(5);
+
+            let i = 0;
+            await Loom.run(processed, (val) => {
+                addLine(i++, val);
+            });
+        }
+
+        async function runMergeDemo() {
+            const a = new Fiber(async function* () {
+                yield 'A1'; await new Promise(r => setTimeout(r, 30));
+                yield 'A2'; await new Promise(r => setTimeout(r, 30));
+                yield 'A3';
+            });
+
+            const b = new Fiber(async function* () {
+                await new Promise(r => setTimeout(r, 10));
+                yield 'B1'; await new Promise(r => setTimeout(r, 10));
+                yield 'B2';
+            });
+
+            const merged = merge(a, b);
+            let i = 0;
+            await Loom.run(merged, (val) => {
+                addLine(i++, val);
+            });
+        }
+
+        async function runBindDemo() {
+            const prices = fromArray([100, 101, 99, 103]);
+            const labels = fromArray(['AAPL', 'AAPL', 'AAPL', 'AAPL']);
+
+            const dashboard = new Braid([prices, labels])
+                .bind(([price, ticker]) => `${ticker}: $${price}`);
+
+            let i = 0;
+            await Loom.run(dashboard, (val) => {
+                addLine(i++, val);
+            });
+        }
+
+        // Expose to window for button onclick
+        window.runDemo = runDemo;
+    </script>
+</body>
+
+</html>

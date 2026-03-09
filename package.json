@@ -1,8 +1,8 @@
 {
-    "name": "braid",
-    "version": "1.0.0",
+    "name": "@kderbyma/braid",
+    "version": "1.0.1",
     "description": "A Language-Agnostic Co-routine Framework - weave independent asynchronous strands into synchronized cords",
-    "author": "ConflictingTheories",
+    "author": "Kyle Derby MacInnis",
     "license": "MIT",
     "homepage": "https://github.com/ConflictingTheories/braid",
     "repository": {
