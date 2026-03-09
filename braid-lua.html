@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>🧶 LuaLite VM: Async Braid Demo</title>
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --term: #181825;
+            --text: #cdd6f4;
+            --green: #a6e3a1;
+            --blue: #89b4fa;
+            --red: #f38ba8;
+            --yellow: #f9e2af;
+            --highlight: #313244;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Fira Code', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: var(--blue);
+            border-bottom: 1px solid var(--highlight);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--highlight);
+            border: 1px solid var(--blue);
+            color: var(--blue);
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--blue);
+            color: var(--bg);
+        }
+
+        button.active {
+            background: var(--green);
+            border-color: var(--green);
+            color: var(--bg);
+        }
+
+        .cpu-rack {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .core {
+            flex: 1;
+            background: var(--term);
+            border: 1px solid #313244;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .core-header {
+            background: #11111b;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #313244;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #45475a;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-dot.running {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        .status-dot.blocked {
+            background: var(--yellow);
+        }
+
+        .status-dot.halted {
+            background: var(--red);
+        }
+
+        .code-view {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .line {
+            padding: 0 5px;
+            border-radius: 3px;
+        }
+
+        .line.current {
+            background: var(--highlight);
+            color: var(--yellow);
+            font-weight: bold;
+        }
+
+        .line-num {
+            color: #585b70;
+            margin-right: 10px;
+            display: inline-block;
+            width: 20px;
+            text-align: right;
+            user-select: none;
+        }
+
+        .registers {
+            padding: 10px;
+            background: #11111b;
+            border-top: 1px solid #313244;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.8rem;
+        }
+
+        .reg {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .reg-val {
+            color: var(--green);
+        }
+
+        .terminal {
+            height: 150px;
+            background: #11111b;
+            border: 1px solid #313244;
+            border-radius: 6px;
+            margin-top: 20px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #1e1e2e;
+            padding-bottom: 2px;
+        }
+
+        .log-ts {
+            color: #585b70;
+            margin-right: 8px;
+            font-size: 0.75rem;
+        }
+
+        .log-core {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>
+        <span>🧶 LuaLite Emulator (Host: JS, Guest: Bytecode)</span>
+        <div class="controls">
+            <button id="btn-merge" class="active">Mode: Async Merge</button>
+            <button id="btn-tight">Mode: Tight Sync</button>
+            <button id="btn-reset">Reset</button>
+        </div>
+    </h1>
+
+    <div class="cpu-rack">
+        <div class="core" id="core-A">
+            <div class="core-header">
+                <span><span class="status-dot" id="led-A"></span>CORE A (I/O Heavy)</span>
+                <span id="state-A">IDLE</span>
+            </div>
+            <div class="code-view" id="code-A"></div>
+            <div class="registers">
+                <div class="reg"><span>IP</span><span class="reg-val" id="reg-A-IP">0</span></div>
+                <div class="reg"><span>ACC</span><span class="reg-val" id="reg-A-ACC">0</span></div>
+                <div class="reg"><span>MSG</span><span class="reg-val" id="reg-A-MSG">-</span></div>
+            </div>
+        </div>
+
+        <div class="core" id="core-B">
+            <div class="core-header">
+                <span><span class="status-dot" id="led-B"></span>CORE B (Math Heavy)</span>
+                <span id="state-B">IDLE</span>
+            </div>
+            <div class="code-view" id="code-B"></div>
+            <div class="registers">
+                <div class="reg"><span>IP</span><span class="reg-val" id="reg-B-IP">0</span></div>
+                <div class="reg"><span>ACC</span><span class="reg-val" id="reg-B-ACC">0</span></div>
+                <div class="reg"><span>MSG</span><span class="reg-val" id="reg-B-MSG">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="terminal" id="terminal">
+        <div style="color:#585b70">// System Boot... Waiting for program load.</div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. BRAID MICRO-KERNEL (The Scheduler)
+        // ==========================================
+        const Tension = { Tight: 'Tight', Loose: 'Loose' };
+        class Fiber {
+            constructor(gen, name) {
+                this.gen = typeof gen === 'function' ? gen : () => gen;
+                this.name = name;
+            }
+            spawn() { return this.gen(); }
+        }
+
+        // Braid: Synchronizes multiple fibers
+        class Braid {
+            constructor(fibers, opts = {}) { this.fibers = fibers; this.tension = opts.tension || Tension.Tight; }
+            async *[Symbol.asyncIterator]() {
+                const S = this.fibers.map(f => ({ g: f.spawn(), done: false, val: undefined }));
+                while (true) {
+                    // Tight: Wait for ALL to complete a cycle
+                    const res = await Promise.all(S.map(s => s.done ? { done: true } : s.g.next()));
+                    if (res.every(r => r.done)) break;
+                    res.forEach((r, i) => {
+                        if (r.done) S[i].done = true;
+                        else S[i].val = r.value;
+                    });
+                    yield S.map(s => s.val);
+                }
+            }
+        }
+
+        // Merge: Runs fibers as fast as possible (Async/Parallel feel)
+        function merge(fibers) {
+            return new Fiber(async function* () {
+                const gens = fibers.map((f, i) => ({ g: f.spawn(), id: i }));
+                const queue = gens.map(item => item.g.next().then(r => ({ r, item })));
+
+                while (queue.length > 0) {
+                    const { r, item } = await Promise.race(queue);
+                    // Remove the finished promise from queue tracking (conceptually)
+                    // In reality, we just replace the slot in the queue array
+                    const qIdx = queue.findIndex(p => p.then && p['_tracked_item'] === item);
+
+                    if (r.done) {
+                        queue.splice(queue.indexOf(promiseThatResolved(item)), 1); // Simplified logic for demo
+                        // Actually simpler: rebuild queue for demo clarity (less efficient but fine for VM)
+                    } else {
+                        yield { core: item.id, val: r.value };
+                        // Re-queue this generator
+                        const nextP = item.g.next().then(res => ({ r: res, item }));
+                        nextP['_tracked_item'] = item; // hacky tag for tracking
+                        // Replace the resolved promise with the new one
+                        // (For this simple demo, we'll just reconstruct the Promise.race set logic)
+                    }
+                }
+            });
+        }
+        // Correct Async Merge Implementation for the demo
+        async function* runMerge(fibers, handler) {
+            const running = fibers.map((f, i) => ({ g: f.spawn(), id: i, done: false }));
+            const nexts = running.map(r => r.g.next().then(res => ({ res, r })));
+
+            while (running.some(x => !x.done)) {
+                // Filter out done ones from the race
+                const activePromises = nexts.filter((_, i) => !running[i].done);
+                if (activePromises.length === 0) break;
+
+                const { res, r } = await Promise.race(activePromises);
+
+                if (res.done) {
+                    r.done = true;
+                } else {
+                    handler(r.id, res.value);
+                    // Replace the promise for this specific generator
+                    nexts[r.id] = r.g.next().then(n => ({ res: n, r }));
+                }
+            }
+        }
+
+
+        // ==========================================
+        // 2. THE LUALITE VM
+        // ==========================================
+        const OP = {
+            MOV: 'MOV',     // MOV ACC, val
+            ADD: 'ADD',     // ADD ACC, val
+            PRINT: 'PRINT', // Console Log
+            SLEEP: 'SLEEP', // Async Wait (Simulated IO)
+            FETCH: 'FETCH', // Async Network Call
+            JMP: 'JMP'      // Jump (Loop)
+        };
+
+        class LuaLiteVM {
+            constructor(id, code) {
+                this.id = id;
+                this.code = code;
+                this.ip = 0;   // Instruction Pointer
+                this.acc = 0;  // Accumulator
+                this.msg = ""; // Last IO Message
+            }
+
+            // This IS the Fiber factory
+            createFiber() {
+                const vm = this;
+                return new Fiber(async function* () {
+                    vm.ip = 0;
+                    while (vm.ip < vm.code.length) {
+                        const instr = vm.code[vm.ip];
+                        vm.highlightLine(vm.ip);
+                        vm.updateStatus("RUNNING", "running");
+
+                        // --- HOST INTEROP LAYER ---
+                        // Here we bridge the Synchronous Guest with Asynchronous Host
+
+                        switch (instr.op) {
+                            case OP.MOV:
+                                vm.acc = instr.arg;
+                                break;
+                            case OP.ADD:
+                                vm.acc += instr.arg;
+                                break;
+                            case OP.PRINT:
+                                vm.msg = `OUT: ${instr.arg}`;
+                                vm.log(instr.arg);
+                                break;
+                            case OP.SLEEP:
+                                vm.updateStatus(`SLEEPING (${instr.arg}ms)`, "blocked");
+                                // YIELD AWAIT: The magic of Braid. 
+                                // The VM pauses here, non-blocking the UI thread.
+                                await new Promise(r => setTimeout(r, instr.arg));
+                                break;
+                            case OP.FETCH:
+                                vm.updateStatus("NET_IO...", "blocked");
+                                vm.msg = "Downloading...";
+                                vm.updateUI();
+                                // Simulated Network Delay
+                                await new Promise(r => setTimeout(r, 1500));
+                                vm.acc = Math.floor(Math.random() * 100); // Fake payload
+                                vm.msg = `RECV: ${vm.acc}kb`;
+                                break;
+                            case OP.JMP:
+                                vm.ip = instr.arg - 1; // -1 because we inc later
+                                break;
+                        }
+
+                        vm.updateUI();
+
+                        // We yield the machine state to the Braid/Loom
+                        // enabling the scheduler to inspect or context switch
+                        yield { ip: vm.ip, acc: vm.acc, msg: vm.msg };
+
+                        vm.ip++;
+                        // Artificial throttle for visualization so humans can see it
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                    vm.updateStatus("HALTED", "halted");
+                    vm.highlightLine(-1);
+                }, `VM-${vm.id}`);
+            }
+
+            // --- UI Helpers ---
+            highlightLine(idx) {
+                const lines = document.getElementById(`code-${this.id}`).children;
+                for (let i = 0; i < lines.length; i++) lines[i].classList.remove('current');
+                if (idx >= 0 && idx < lines.length) lines[idx].classList.add('current');
+            }
+
+            updateStatus(text, cls) {
+                document.getElementById(`state-${this.id}`).innerText = text;
+                const led = document.getElementById(`led-${this.id}`);
+                led.className = `status-dot ${cls}`;
+            }
+
+            updateUI() {
+                document.getElementById(`reg-${this.id}-IP`).innerText = this.ip;
+                document.getElementById(`reg-${this.id}-ACC`).innerText = this.acc;
+                document.getElementById(`reg-${this.id}-MSG`).innerText = this.msg;
+            }
+
+            log(txt) {
+                const term = document.getElementById('terminal');
+                const d = new Date().toLocaleTimeString().split(' ')[0];
+                const color = this.id === 'A' ? 'var(--blue)' : 'var(--red)';
+                term.innerHTML += `<div class="log-entry"><span class="log-ts">${d}</span><span class="log-core" style="color:${color}">CORE ${this.id}:</span>${txt}</div>`;
+                term.scrollTop = term.scrollHeight;
+            }
+
+            renderCode() {
+                const el = document.getElementById(`code-${this.id}`);
+                el.innerHTML = this.code.map((line, i) =>
+                    `<div class="line"><span class="line-num">${i}</span><span style="color:${this.opColor(line.op)}">${line.op}</span> ${line.arg !== undefined ? line.arg : ''}</div>`
+                ).join('');
+            }
+
+            opColor(op) {
+                if (op === OP.SLEEP || op === OP.FETCH) return 'var(--red)';
+                if (op === OP.JMP) return 'var(--yellow)';
+                return 'var(--text)';
+            }
+        }
+
+        // ==========================================
+        // 3. PROGRAMS & ORCHESTRATION
+        // ==========================================
+
+        // Program A: Simulate a Network Crawler (IO Heavy)
+        const codeA = [
+            { op: OP.PRINT, arg: "Starting crawler..." },
+            { op: OP.FETCH, arg: "http://data.src" }, // Blocking IO
+            { op: OP.MOV, arg: 10 },
+            { op: OP.PRINT, arg: "Parsing data..." },
+            { op: OP.SLEEP, arg: 800 },               // Processing delay
+            { op: OP.ADD, arg: 1 },
+            { op: OP.PRINT, arg: "Indexing..." },
+            { op: OP.SLEEP, arg: 1200 },
+            { op: OP.PRINT, arg: "Done." }
+        ];
+
+        // Program B: Simulate Math Crunching (CPU Heavy)
+        const codeB = [
+            { op: OP.MOV, arg: 0 },
+            { op: OP.ADD, arg: 10 },
+            { op: OP.PRINT, arg: "Calibrating..." },
+            { op: OP.SLEEP, arg: 200 },
+            { op: OP.ADD, arg: 20 },
+            { op: OP.ADD, arg: 30 },
+            { op: OP.PRINT, arg: "Crunching..." },
+            { op: OP.ADD, arg: 40 },
+            { op: OP.JMP, arg: 1 } // Infinite Loop (Stress Test)
+        ];
+
+        const vmA = new LuaLiteVM('A', codeA);
+        const vmB = new LuaLiteVM('B', codeB);
+
+        vmA.renderCode();
+        vmB.renderCode();
+
+        let activeController = null; // To cancel runs
+
+        // --- CONTROLLERS ---
+
+        function reset() {
+            // Hard reload to clear all state for demo simplicity
+            location.reload();
+        }
+
+        async function startMerge() {
+            document.getElementById('terminal').innerHTML = '<div style="color:#89b4fa">-- MODE: ASYNC MERGE (Cooperative Multitasking) --</div>';
+
+            // In Merge Mode: We use 'runMerge' helper which races the fibers.
+            // Notice how Core B keeps running even while Core A is blocked on FETCH/SLEEP.
+            await runMerge([vmA.createFiber(), vmB.createFiber()], (id, val) => {
+                // UI is updated inside the VM class, but we could handle aggregation here
+            });
+        }
+
+        async function startTight() {
+            document.getElementById('terminal').innerHTML = '<div style="color:#a6e3a1">-- MODE: TIGHT BRAID (Lock-Step Sync) --</div>';
+
+            // In Tight Mode: We use the Braid class.
+            // When Core A hits SLEEP, the *entire braid* waits. Core B cannot advance.
+            // This simulates "Stop the World" Garbage Collection or Single-Threaded coupling.
+            const braid = new Braid([vmA.createFiber(), vmB.createFiber()], { tension: Tension.Tight });
+
+            for await (const frame of braid) {
+                // Both frames arrive together
+            }
+        }
+
+        // --- BINDINGS ---
+
+        document.getElementById('btn-merge').onclick = () => {
+            document.getElementById('btn-merge').classList.add('active');
+            document.getElementById('btn-tight').classList.remove('active');
+            startMerge();
+        };
+
+        document.getElementById('btn-tight').onclick = () => {
+            document.getElementById('btn-tight').classList.add('active');
+            document.getElementById('btn-merge').classList.remove('active');
+            startTight();
+        };
+
+        document.getElementById('btn-reset').onclick = reset;
+
+        // Auto-start
+        startMerge();
+
+    </script>
+</body>
+
+</html>

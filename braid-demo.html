@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🧶 Braid — Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#090b0d;--surface:#0f1318;--panel:#141920;
+  --border:#1c2530;--border2:#263340;
+  --text:#c0d4e8;--muted:#4a6070;--dim:#2a3a48;
+  --tight:#3de898;--loose:#38b8f8;--frayed:#f84060;
+  --gold:#f0b030;--purple:#9878f8;--teal:#30d8c0;
+  --orange:#f88040;--pink:#e040d0;
+  --hf:'Syne',sans-serif;--bf:'DM Sans',sans-serif;--cf:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--bf);font-size:14px;overflow-x:hidden}
+.page{position:relative;z-index:1;max-width:1160px;margin:0 auto;padding:0 20px}
+
+/* HEADER */
+header{padding:52px 0 32px;border-bottom:1px solid var(--border);margin-bottom:36px}
+.hrow{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.yarn{font-size:2.5rem;animation:yp 3s ease-in-out infinite}
+@keyframes yp{0%,100%{filter:drop-shadow(0 0 12px rgba(240,176,48,.5))}50%{filter:drop-shadow(0 0 26px rgba(240,176,48,.9))}}
+h1{font-family:var(--hf);font-size:2.8rem;font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(130deg,#f0b030,#fff8e0);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-family:var(--cf);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.desc{color:var(--muted);max-width:520px;line-height:1.75;font-weight:300}
+.desc strong{color:var(--text);font-weight:400}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.pill{padding:5px 14px;border-radius:999px;font-family:var(--cf);font-size:.7rem;
+  border:1px solid var(--border2);background:var(--panel);color:var(--muted);
+  cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block}
+.pill:hover,.pill.on{border-color:var(--gold);color:var(--gold);background:rgba(240,176,48,.07)}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.full{grid-column:1/-1}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+
+/* CARD */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .3s}
+.card:hover{border-color:var(--border2)}
+.ch{padding:13px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.ct{font-family:var(--hf);font-size:.9rem;font-weight:700;color:#ddeeff;flex:1}
+.cb{padding:16px}
+.cdesc{color:var(--muted);font-size:.78rem;line-height:1.65;margin-bottom:12px;font-weight:300}
+.cdesc em{color:var(--text);font-style:normal}
+
+/* BADGE */
+.badge{font-family:var(--cf);font-size:.62rem;padding:2px 9px;border-radius:999px;letter-spacing:.05em;font-weight:500}
+.bt{background:rgba(61,232,152,.1);color:var(--tight);border:1px solid rgba(61,232,152,.22)}
+.bl{background:rgba(56,184,248,.1);color:var(--loose);border:1px solid rgba(56,184,248,.22)}
+.bf{background:rgba(248,64,96,.1);color:var(--frayed);border:1px solid rgba(248,64,96,.22)}
+.bu{background:rgba(240,176,48,.1);color:var(--gold);border:1px solid rgba(240,176,48,.22)}
+
+/* VIZ */
+.viz{height:100px;background:var(--surface);border:1px solid var(--border);border-radius:7px;
+  margin-bottom:12px;position:relative;overflow:hidden}
+.viz canvas{position:absolute;inset:0}
+
+/* LANES */
+.lanes{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.lane{display:flex;align-items:center;gap:8px}
+.ll{font-family:var(--cf);font-size:.62rem;width:60px;flex-shrink:0}
+.lt{flex:1;height:20px;background:var(--surface);border:1px solid var(--border);border-radius:3px;position:relative;overflow:hidden}
+.lf{height:100%;width:0%;border-radius:2px;transition:width .22s ease}
+
+/* STREAM */
+.sl{font-family:var(--cf);font-size:.6rem;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-bottom:5px}
+.sb{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:7px 11px;
+  font-family:var(--cf);font-size:.68rem;min-height:44px;max-height:58px;overflow-y:auto;
+  display:flex;flex-wrap:wrap;gap:5px;align-content:flex-end;scrollbar-width:none}
+.tok{padding:2px 7px;border-radius:3px;font-family:var(--cf);font-size:.67rem;
+  animation:tkin .22s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes tkin{from{opacity:0;transform:scale(.6) translateY(5px)}to{opacity:1;transform:none}}
+.tt{background:rgba(61,232,152,.1);color:var(--tight);border:1px solid rgba(61,232,152,.18)}
+.tl{background:rgba(56,184,248,.1);color:var(--loose);border:1px solid rgba(56,184,248,.18)}
+.tf{background:rgba(248,64,96,.1);color:var(--frayed);border:1px solid rgba(248,64,96,.18)}
+.tg{background:rgba(240,176,48,.1);color:var(--gold);border:1px solid rgba(240,176,48,.18)}
+.ta{background:rgba(152,120,248,.1);color:var(--purple);border:1px solid rgba(152,120,248,.18)}
+.tb{background:rgba(48,216,192,.1);color:var(--teal);border:1px solid rgba(48,216,192,.18)}
+.tc{background:rgba(248,128,64,.1);color:var(--orange);border:1px solid rgba(248,128,64,.18)}
+
+/* STATS */
+.stats{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
+.stat{font-family:var(--cf);font-size:.65rem;color:var(--muted)}
+.sv{color:var(--text);font-weight:500}
+
+/* CONTROLS */
+.ctrls{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.btn{padding:5px 14px;border-radius:5px;font-family:var(--cf);font-size:.68rem;font-weight:500;
+  border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;transition:all .14s}
+.btn:hover{background:var(--border)}
+.run{border-color:var(--tight);color:var(--tight);background:rgba(61,232,152,.05)}
+.run:hover{background:rgba(61,232,152,.12)}
+.stp{border-color:var(--frayed);color:var(--frayed);background:rgba(248,64,96,.05)}
+.stp:hover{background:rgba(248,64,96,.12)}
+
+/* CODE */
+.code{background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:11px 15px;font-family:var(--cf);font-size:.67rem;line-height:1.75;
+  color:var(--muted);overflow-x:auto;white-space:pre;margin-top:11px}
+.kw{color:var(--loose)}.cls{color:var(--gold)}.str{color:var(--tight)}.cm{color:var(--dim)}.fn{color:var(--purple)}.nm{color:var(--orange)}
+
+/* SECTION */
+.sh{font-family:var(--hf);font-size:1.35rem;font-weight:700;color:#ddeeff;margin:40px 0 4px}
+.ss{color:var(--muted);font-size:.8rem;margin-bottom:20px;font-weight:300}
+
+/* PIPELINE */
+.prow{display:flex;align-items:center;overflow-x:auto;padding:14px 0;gap:0;scrollbar-width:none}
+.pn{flex-shrink:0;padding:8px 13px;border-radius:7px;font-family:var(--cf);font-size:.67rem;
+  white-space:nowrap;border:1px solid var(--border2);background:var(--panel)}
+.pn-f{border-color:var(--purple) !important;color:var(--purple);background:rgba(152,120,248,.07) !important}
+.pn-b{border-color:var(--gold) !important;color:var(--gold);background:rgba(240,176,48,.07) !important}
+.pn-d{border-color:var(--teal) !important;color:var(--teal);background:rgba(48,216,192,.07) !important}
+.pn-l{border-color:var(--frayed) !important;color:var(--frayed);background:rgba(248,64,96,.07) !important}
+.parr{flex-shrink:0;width:26px;height:2px;background:var(--border2);position:relative;margin:0 2px}
+.parr::after{content:'';position:absolute;right:-5px;top:-4px;
+  border-left:7px solid var(--border2);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.parr.on{background:var(--gold)}.parr.on::after{border-left-color:var(--gold)}
+
+/* DASHBOARD */
+.dbstage{height:180px;background:var(--surface);border:1px solid var(--border);border-radius:7px;
+  overflow:hidden;position:relative;margin-bottom:14px}
+.dbstage canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* FOOTER */
+footer{margin-top:64px;padding:26px 0;border-top:1px solid var(--border);
+  text-align:center;color:var(--dim);font-family:var(--cf);font-size:.7rem}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="hrow">
+    <span class="yarn">🧶</span>
+    <h1>Braid</h1>
+  </div>
+  <p class="sub">Synchronize the Asynchronous</p>
+  <p class="desc">
+    Weave independent async <strong>Fibers</strong> into a synchronized <strong>Braid</strong>,
+    controlled by a <strong>Tension</strong> policy, driven by the <strong>Loom</strong>.
+    Click ▶ Run on any card to watch it live.
+  </p>
+  <div class="pills">
+    <a class="pill on" href="#tensions">Tensions</a>
+    <a class="pill" href="#composition">Composition</a>
+    <a class="pill" href="#combinators">Combinators</a>
+    <a class="pill" href="#dashboard">Dashboard</a>
+  </div>
+</header>
+
+<!-- PIPELINE -->
+<div class="card full" style="margin-bottom:18px">
+  <div class="ch"><span class="ct">Data Flow</span><span class="badge bu">Architecture</span></div>
+  <div class="cb">
+    <p class="cdesc">Every value travels the same path — Fibers produce, Braid synchronizes, <em>bind()</em> transforms, Loom executes.</p>
+    <div class="prow">
+      <div class="pn pn-f">Fiber A</div><div class="parr" id="pa0"></div>
+      <div class="pn pn-b">Braid</div><div class="parr" id="pa1"></div>
+      <div class="pn pn-d">.bind(fn)</div><div class="parr" id="pa2"></div>
+      <div class="pn pn-f">Fiber&lt;Result&gt;</div><div class="parr" id="pa3"></div>
+      <div class="pn pn-l">Loom.run()</div>
+      <div style="width:10px;flex-shrink:0"></div>
+      <div class="pn pn-b" style="opacity:.35;border-style:dashed">→ new Braid…</div>
+    </div>
+    <div class="ctrls">
+      <button class="btn run" onclick="pipeStart()">▶ Animate</button>
+      <button class="btn stp" onclick="pipeStop()">■ Stop</button>
+    </div>
+  </div>
+</div>
+
+<p class="sh" id="tensions">Tension Policies</p>
+<p class="ss">How the Braid handles strands running at different speeds.</p>
+
+<div class="grid">
+
+<!-- TIGHT -->
+<div class="card">
+  <div class="ch"><span class="ct">Tight</span><span class="badge bt">Atomic lock-step</span></div>
+  <div class="cb">
+    <p class="cdesc">Advances only when <em>all strands yield</em>. Slower strand holds the faster one until it catches up.</p>
+    <div class="viz"><canvas id="cv-tight"></canvas></div>
+    <div class="lanes">
+      <div class="lane"><span class="ll" style="color:var(--purple)">fiber-A</span><div class="lt"><div class="lf" id="lf-ta" style="background:var(--purple)"></div></div></div>
+      <div class="lane"><span class="ll" style="color:var(--teal)">fiber-B</span><div class="lt"><div class="lf" id="lf-tb" style="background:var(--teal)"></div></div></div>
+    </div>
+    <div class="sl">Output — synchronized tuples</div>
+    <div class="sb" id="sb-tight"></div>
+    <div class="stats"><span class="stat">Tuples: <span class="sv" id="st-tight">0</span></span><span class="stat">State: <span class="sv" id="sw-tight">idle</span></span></div>
+    <div class="ctrls">
+      <button class="btn run" onclick="D.tight.start()">▶ Run</button>
+      <button class="btn stp" onclick="D.tight.stop()">■ Stop</button>
+      <button class="btn" onclick="D.tight.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="kw">const</span> braid = <span class="kw">new</span> <span class="cls">Braid</span>([fiberA, fiberB]);
+<span class="cm">// Tension.Tight is the default</span>
+<span class="kw">for await</span> (<span class="kw">const</span> [a, b] <span class="kw">of</span> braid) { ... }</div>
+  </div>
+</div>
+
+<!-- LOOSE -->
+<div class="card">
+  <div class="ch"><span class="ct">Loose</span><span class="badge bl">Fluid / cached</span></div>
+  <div class="cb">
+    <p class="cdesc">Fast strands use the <em>last cached value</em> of slow ones. Emits whenever any strand yields.</p>
+    <div class="viz"><canvas id="cv-loose"></canvas></div>
+    <div class="lanes">
+      <div class="lane"><span class="ll" style="color:var(--purple)">fast 120ms</span><div class="lt"><div class="lf" id="lf-la" style="background:var(--purple)"></div></div></div>
+      <div class="lane"><span class="ll" style="color:var(--teal)">slow 900ms</span><div class="lt"><div class="lf" id="lf-lb" style="background:var(--teal)"></div></div></div>
+    </div>
+    <div class="sl">Output — fluid, slow value is cached</div>
+    <div class="sb" id="sb-loose"></div>
+    <div class="stats">
+      <span class="stat">Fast: <span class="sv" id="st-la">0</span></span>
+      <span class="stat">Slow: <span class="sv" id="st-lb">0</span></span>
+      <span class="stat">Emits: <span class="sv" id="st-lt">0</span></span>
+    </div>
+    <div class="ctrls">
+      <button class="btn run" onclick="D.loose.start()">▶ Run</button>
+      <button class="btn stp" onclick="D.loose.stop()">■ Stop</button>
+      <button class="btn" onclick="D.loose.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="kw">const</span> braid = <span class="kw">new</span> <span class="cls">Braid</span>([fast, slow], {
+  tension: <span class="cls">Tension</span>.<span class="str">Loose</span>
+});</div>
+  </div>
+</div>
+
+<!-- FRAYED -->
+<div class="card">
+  <div class="ch"><span class="ct">Frayed</span><span class="badge bf">Strict / fails fast</span></div>
+  <div class="cb">
+    <p class="cdesc">If <em>any</em> strand exhausts or throws, the entire Braid stops immediately. Strict pipelines only.</p>
+    <div class="viz"><canvas id="cv-frayed"></canvas></div>
+    <div class="lanes">
+      <div class="lane"><span class="ll" style="color:var(--purple)">long (∞)</span><div class="lt"><div class="lf" id="lf-fa" style="background:var(--purple)"></div></div></div>
+      <div class="lane"><span class="ll" style="color:var(--frayed)">short (5)</span><div class="lt"><div class="lf" id="lf-fb" style="background:var(--frayed)"></div></div></div>
+    </div>
+    <div class="sl">Output — halts when short strand ends</div>
+    <div class="sb" id="sb-frayed"></div>
+    <div class="stats"><span class="stat">Status: <span class="sv" id="st-frayed">idle</span></span></div>
+    <div class="ctrls">
+      <button class="btn run" onclick="D.frayed.start()">▶ Run</button>
+      <button class="btn stp" onclick="D.frayed.stop()">■ Stop</button>
+      <button class="btn" onclick="D.frayed.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="kw">const</span> braid = <span class="kw">new</span> <span class="cls">Braid</span>([long, short], {
+  tension: <span class="cls">Tension</span>.<span class="str">Frayed</span>
+}); <span class="cm">// stops when 'short' ends</span></div>
+  </div>
+</div>
+
+<!-- COMPOSE -->
+<div class="card" id="composition">
+  <div class="ch"><span class="ct">Bind & Compose</span><span class="badge bu">Fiber of Braids</span></div>
+  <div class="cb">
+    <p class="cdesc"><em>braid.bind(fn)</em> returns a new Fiber — which enters another Braid. Infinite nesting, no special API.</p>
+    <div class="viz"><canvas id="cv-compose"></canvas></div>
+    <div class="sl">Level 1: [ask, bid] → spread</div>
+    <div class="sb" id="sb-comp1"></div>
+    <div class="sl" style="margin-top:7px">Level 2: [spread, signal] → decision</div>
+    <div class="sb" id="sb-comp2"></div>
+    <div class="ctrls">
+      <button class="btn run" onclick="D.compose.start()">▶ Run</button>
+      <button class="btn stp" onclick="D.compose.stop()">■ Stop</button>
+      <button class="btn" onclick="D.compose.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="kw">const</span> spread = <span class="kw">new</span> <span class="cls">Braid</span>([ask, bid])
+  .<span class="fn">bind</span>(([a,b]) => a - b); <span class="cm">// Fiber&lt;number&gt;</span>
+<span class="kw">const</span> decision = <span class="kw">new</span> <span class="cls">Braid</span>([spread, sig])
+  .<span class="fn">bind</span>(([sp, s]) => sp > <span class="nm">2</span> ? s : <span class="str">"WAIT"</span>);</div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<p class="sh" id="combinators">Combinators</p>
+<p class="ss">Free functions that reshape and combine Fibers.</p>
+
+<div class="grid">
+
+<!-- MERGE -->
+<div class="card">
+  <div class="ch"><span class="ct">merge()</span><span class="badge bu">Fan-in</span></div>
+  <div class="cb">
+    <p class="cdesc">Emit from N Fibers as values arrive — unordered, non-blocking. Three sources race below.</p>
+    <div class="viz"><canvas id="cv-merge"></canvas></div>
+    <div class="sl">Merged output (arrival order, color = source)</div>
+    <div class="sb" id="sb-merge"></div>
+    <div class="ctrls">
+      <button class="btn run" onclick="D.merge.start()">▶ Run</button>
+      <button class="btn stp" onclick="D.merge.stop()">■ Stop</button>
+      <button class="btn" onclick="D.merge.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="kw">const</span> stream = <span class="fn">merge</span>(fiberA, fiberB, fiberC);
+<span class="cm">// values arrive race-style, unordered</span></div>
+  </div>
+</div>
+
+<!-- CHAIN -->
+<div class="card">
+  <div class="ch"><span class="ct">map · filter · take</span><span class="badge bu">Fiber ops</span></div>
+  <div class="cb">
+    <p class="cdesc">Chain transformations fluently on a Fiber. Each op returns a <em>new Fiber</em>. Watch a counter get filtered and mapped.</p>
+    <div class="viz"><canvas id="cv-chain"></canvas></div>
+    <div class="sl">counter(0) → filter(even) → map(×10) → take(8)</div>
+    <div class="sb" id="sb-chain"></div>
+    <div class="ctrls">
+      <button class="btn run" onclick="D.chain.start()">▶ Run</button>
+      <button class="btn stp" onclick="D.chain.stop()">■ Stop</button>
+      <button class="btn" onclick="D.chain.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="fn">counter</span>(<span class="nm">0</span>)
+  .<span class="fn">filter</span>(n => n % <span class="nm">2</span> === <span class="nm">0</span>)
+  .<span class="fn">map</span>(n => n * <span class="nm">10</span>)
+  .<span class="fn">take</span>(<span class="nm">8</span>); <span class="cm">// [0,20,40,60,80,100,120,140]</span></div>
+  </div>
+</div>
+
+</div>
+
+<p class="sh" id="dashboard">Live Dashboard</p>
+<p class="ss">Three fibers at different speeds woven with Loose tension into a live market feed.</p>
+
+<div class="card full">
+  <div class="ch"><span class="ct">Market Dashboard — Braid of Braids</span><span class="badge bl">Loose + bind()</span></div>
+  <div class="cb">
+    <div class="dbstage"><canvas id="cv-dash"></canvas></div>
+    <div class="grid" style="margin-bottom:0">
+      <div><div class="sl">price fiber — 80ms</div><div class="sb" id="db-price"></div></div>
+      <div><div class="sl">news fiber — 2s</div><div class="sb" id="db-news"></div></div>
+      <div><div class="sl">sentiment — 700ms</div><div class="sb" id="db-sent"></div></div>
+      <div><div class="sl">dashboard output — bound fiber</div><div class="sb" id="db-out"></div></div>
+    </div>
+    <div class="ctrls" style="margin-top:13px">
+      <button class="btn run" onclick="D.dash.start()">▶ Start Dashboard</button>
+      <button class="btn stp" onclick="D.dash.stop()">■ Stop</button>
+      <button class="btn" onclick="D.dash.reset()">↺ Reset</button>
+    </div>
+    <div class="code"><span class="kw">const</span> dashboard = <span class="kw">new</span> <span class="cls">Braid</span>(
+  [price, news, mood], { tension: <span class="cls">Tension</span>.<span class="str">Loose</span> }
+).<span class="fn">bind</span>(([p, n, s]) => ({ price: p, headline: n, mood: s }));
+<span class="cls">Loom</span>.<span class="fn">run</span>(dashboard, update => <span class="fn">renderUI</span>(update));</div>
+  </div>
+</div>
+
+</div><!-- /page -->
+<footer>
+  <div class="page">🧶 Braid v1.0 &nbsp;·&nbsp; MIT License &nbsp;·&nbsp;
+    <a href="#">Spec</a> &nbsp;·&nbsp; <a href="#">Source</a> &nbsp;·&nbsp;
+    <em style="color:var(--dim)">Synchronize the Asynchronous</em>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════
+//  BRAID CORE — pure JS, no dependencies
+// ═══════════════════════════════════════════
+
+class Fiber {
+  constructor(factory, name) {
+    this.name = name || 'fiber';
+    this._f = typeof factory === 'function' ? factory : () => factory;
+  }
+  spawn() { return this._f(); }
+  map(fn) {
+    const self = this;
+    return new Fiber(async function*() { for await(const v of self.spawn()) yield fn(v); }, this.name+':map');
+  }
+  filter(pred) {
+    const self = this;
+    return new Fiber(async function*() { for await(const v of self.spawn()) if(pred(v)) yield v; }, this.name+':filter');
+  }
+  take(n) {
+    const self = this;
+    return new Fiber(async function*() { let c=0; for await(const v of self.spawn()){ yield v; if(++c>=n) return; } }, this.name+':take');
+  }
+}
+
+const Tension = { Tight:'Tight', Loose:'Loose', Frayed:'Frayed' };
+
+class Braid {
+  constructor(fibers, opts) {
+    opts = opts || {};
+    this._s = fibers.map(f => ({ f, g: f.spawn(), v: undefined, done: false }));
+    this._t = opts.tension || Tension.Tight;
+    this._r = false;
+  }
+  fray() { this._r = false; return this._s.map(s => s.v); }
+  bind(fn) {
+    const self = this;
+    return new Fiber(async function*() { for await(const t of self) yield fn(t); }, 'bound');
+  }
+  async *[Symbol.asyncIterator]() {
+    this._r = true;
+    try {
+      if (this._t === Tension.Tight)  yield* this._tight();
+      else if (this._t === Tension.Loose)  yield* this._loose();
+      else if (this._t === Tension.Frayed) yield* this._frayed();
+    } finally { this._r = false; }
+  }
+  async *_tight() {
+    while (this._r) {
+      const rs = await Promise.all(this._s.map(s => s.done ? Promise.resolve(null) : s.g.next()));
+      let any = false;
+      for (let i = 0; i < this._s.length; i++) {
+        if (!rs[i]) continue;
+        if (rs[i].done) { this._s[i].done = true; any = true; }
+        else this._s[i].v = rs[i].value;
+      }
+      if (any) return;
+      yield this._s.map(s => s.v);
+    }
+  }
+  async *_loose() {
+    const b = await Promise.all(this._s.map(s => s.g.next()));
+    for (let i = 0; i < this._s.length; i++) {
+      if (!b[i].done) this._s[i].v = b[i].value; else this._s[i].done = true;
+    }
+    yield this._s.map(s => s.v);
+    const mk = (s, i) => s.g.next().then(r => ({r, i}));
+    const p = new Map();
+    for (let i = 0; i < this._s.length; i++) if (!this._s[i].done) p.set(i, mk(this._s[i], i));
+    while (this._r && p.size > 0) {
+      const {r, i} = await Promise.race(p.values());
+      p.delete(i);
+      if (r.done) { this._s[i].done = true; }
+      else { this._s[i].v = r.value; p.set(i, mk(this._s[i], i)); yield this._s.map(s => s.v); }
+    }
+  }
+  async *_frayed() {
+    while (this._r) {
+      const rs = await Promise.all(this._s.map(s => s.g.next()));
+      for (let i = 0; i < this._s.length; i++) {
+        if (rs[i].done) return;
+        this._s[i].v = rs[i].value;
+      }
+      yield this._s.map(s => s.v);
+    }
+  }
+}
+
+function merge() {
+  const fibers = Array.from(arguments);
+  return new Fiber(async function*() {
+    const gs = fibers.map(f => f.spawn());
+    const adv = (g, i) => g.next().then(r => ({r, i}));
+    const p = new Map(gs.map((g, i) => [i, adv(g, i)]));
+    while (p.size > 0) {
+      const {r, i} = await Promise.race(p.values());
+      p.delete(i);
+      if (!r.done) { yield r.value; p.set(i, adv(gs[i], i)); }
+    }
+  }, 'merge');
+}
+
+// ═══════════════════════════════════════════
+//  CANVAS HELPERS
+// ═══════════════════════════════════════════
+
+function initCtx(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  el.width = el.parentElement.offsetWidth;
+  el.height = el.parentElement.offsetHeight;
+  return el.getContext('2d');
+}
+
+class Wave {
+  constructor(id, colors) {
+    this.colors = colors;
+    this.data = colors.map(() => []);
+    this.MAX = 90;
+    this.ctx = initCtx(id);
+    if (this.ctx) { this.w = this.ctx.canvas.width; this.h = this.ctx.canvas.height; }
+  }
+  push(i, v) {
+    if (!this.data[i]) return;
+    this.data[i].push(v);
+    if (this.data[i].length > this.MAX) this.data[i].shift();
+    this._draw();
+  }
+  _draw() {
+    const {ctx, w, h} = this;
+    if (!ctx) return;
+    ctx.clearRect(0,0,w,h);
+    // grid
+    ctx.strokeStyle='#192230'; ctx.lineWidth=1;
+    for(let x=0;x<w;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+    for(let y=0;y<h;y+=20){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    const n = this.data.length;
+    this.data.forEach((pts, ti) => {
+      if (pts.length < 2) return;
+      const bh = h / n, by = bh*ti + bh/2;
+      ctx.beginPath();
+      ctx.strokeStyle = this.colors[ti]; ctx.lineWidth = 2;
+      ctx.shadowColor = this.colors[ti]; ctx.shadowBlur = 5;
+      pts.forEach((v,i) => {
+        const x = (i/(this.MAX-1))*w, y = by - v*bh*0.38;
+        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      });
+      ctx.stroke(); ctx.shadowBlur=0;
+      const lx = ((pts.length-1)/(this.MAX-1))*w, ly = by - pts[pts.length-1]*bh*0.38;
+      ctx.beginPath(); ctx.fillStyle=this.colors[ti];
+      ctx.shadowColor=this.colors[ti]; ctx.shadowBlur=8;
+      ctx.arc(lx,ly,3.5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+    });
+  }
+  reset() { this.data = this.colors.map(()=>[]); if(this.ctx) this.ctx.clearRect(0,0,this.w,this.h); }
+}
+
+// ═══════════════════════════════════════════
+//  STREAM + UTIL HELPERS
+// ═══════════════════════════════════════════
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function tok(id, text, cls) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  const t = document.createElement('span');
+  t.className = 'tok ' + cls; t.textContent = text;
+  box.appendChild(t);
+  while (box.children.length > 16) box.removeChild(box.firstChild);
+  box.scrollTop = 9999;
+}
+function clr(id) { const el=document.getElementById(id); if(el) el.innerHTML=''; }
+function setFill(id, pct) { const el=document.getElementById(id); if(el) el.style.width=Math.min(100,Math.max(0,pct))+'%'; }
+function setTxt(id, v, col) { const el=document.getElementById(id); if(!el) return; el.textContent=v; if(col) el.style.color=col; }
+
+// ═══════════════════════════════════════════
+//  TIGHT DEMO
+// ═══════════════════════════════════════════
+function mkTight() {
+  let run=false, n=0, B=null;
+  const W = new Wave('cv-tight',['#9878f8','#30d8c0']);
+  function start() {
+    if(run) return; run=true; n=0;
+    setTxt('sw-tight','waiting…','#f0b030');
+    B = new Braid([
+      new Fiber(async function*(){ let i=0; while(run){await sleep(260+Math.random()*240); yield i++;} },'A'),
+      new Fiber(async function*(){ let i=0; while(run){await sleep(460+Math.random()*360); yield i++;} },'B'),
+    ]);
+    (async()=>{
+      for await(const [a,b] of B){
+        if(!run) break; n++;
+        W.push(0,Math.sin(a*.7)); W.push(1,Math.cos(b*.5));
+        setFill('lf-ta',(a%10)*10); setFill('lf-tb',(b%10)*10);
+        tok('sb-tight','['+a+','+b+']','tt');
+        setTxt('st-tight',n); setTxt('sw-tight','✓ synced','#3de898');
+      }
+    })();
+  }
+  function stop(){ run=false; if(B) B.fray(); setTxt('sw-tight','stopped','#f84060'); }
+  function reset(){ stop(); n=0; clr('sb-tight'); W.reset(); setTxt('st-tight','0'); setTxt('sw-tight','idle','#4a6070'); setFill('lf-ta',0); setFill('lf-tb',0); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  LOOSE DEMO
+// ═══════════════════════════════════════════
+function mkLoose() {
+  let run=false, la=0, lb=0, lt=0, B=null;
+  const W = new Wave('cv-loose',['#9878f8','#30d8c0']);
+  function start() {
+    if(run) return; run=true; la=lb=lt=0;
+    B = new Braid([
+      new Fiber(async function*(){ let i=0; while(run){await sleep(120); yield i++;} },'fast'),
+      new Fiber(async function*(){ const h=['📈 Bullish','📉 Bearish','📊 Sideways','🔔 Breakout']; let i=0; while(run){await sleep(900); yield h[i++%4];} },'slow'),
+    ], {tension:Tension.Loose});
+    (async()=>{
+      for await(const [p,news] of B){
+        if(!run) break; lt++;
+        if(typeof p==='number'){ la=p; W.push(0,Math.sin(la*.3)); setFill('lf-la',(la%20)*5); }
+        if(news&&typeof news==='string'){ lb++; W.push(1,lb%2?0.8:-0.5); setFill('lf-lb',(lb%5)*20); }
+        tok('sb-loose',(typeof p==='number'?p:'?')+' | '+(news||'…'),'tl');
+        setTxt('st-la',la); setTxt('st-lb',lb); setTxt('st-lt',lt);
+      }
+    })();
+  }
+  function stop(){ run=false; if(B) B.fray(); }
+  function reset(){ stop(); la=lb=lt=0; clr('sb-loose'); W.reset(); setTxt('st-la','0'); setTxt('st-lb','0'); setTxt('st-lt','0'); setFill('lf-la',0); setFill('lf-lb',0); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  FRAYED DEMO
+// ═══════════════════════════════════════════
+function mkFrayed() {
+  let run=false, B=null;
+  const W = new Wave('cv-frayed',['#9878f8','#f84060']);
+  function start() {
+    if(run) return; run=true;
+    setTxt('st-frayed','running…','#3de898');
+    B = new Braid([
+      new Fiber(async function*(){ let i=0; while(run){await sleep(320); yield i++;} },'long'),
+      new Fiber(async function*(){ for(let i=0;i<5;i++){await sleep(360); yield i;} },'short'),
+    ], {tension:Tension.Frayed});
+    (async()=>{
+      try {
+        for await(const [a,b] of B){
+          if(!run) break;
+          W.push(0,Math.sin(a*.5)); W.push(1,b/4);
+          setFill('lf-fa',(a%10)*10); setFill('lf-fb',(b/4)*100);
+          tok('sb-frayed','['+a+','+b+']','tf');
+        }
+        if(run) setTxt('st-frayed','⚡ short exhausted!','#f84060');
+      } catch(e) { setTxt('st-frayed','💥 '+e.message,'#f84060'); }
+      run=false;
+    })();
+  }
+  function stop(){ run=false; if(B) B.fray(); setTxt('st-frayed','stopped','#f84060'); }
+  function reset(){ stop(); clr('sb-frayed'); W.reset(); setTxt('st-frayed','idle','#4a6070'); setFill('lf-fa',0); setFill('lf-fb',0); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  COMPOSE DEMO
+// ═══════════════════════════════════════════
+function mkCompose() {
+  let run=false;
+  const W = new Wave('cv-compose',['#f0b030','#e040d0']);
+  function start() {
+    if(run) return; run=true;
+    const spread = new Braid([
+      new Fiber(async function*(){ let p=102; while(run){await sleep(440); yield p+=(Math.random()-.45)*2;} },'ask'),
+      new Fiber(async function*(){ let p=100; while(run){await sleep(440); yield p+=(Math.random()-.45)*2;} },'bid'),
+    ]).bind(([a,b]) => parseFloat((a-b).toFixed(2)));
+    const sig = new Fiber(async function*(){ const s=['BUY','SELL','HOLD']; let i=0; while(run){await sleep(800); yield s[i++%3];} },'sig');
+    const dec = new Braid([spread, sig], {tension:Tension.Loose}).bind(([sp,s]) => {
+      W.push(0,sp*.3); W.push(1,s==='BUY'?1:s==='SELL'?-1:0);
+      tok('sb-comp1','spread='+sp,'tg');
+      return (Math.abs(sp)>2?s:'WAIT')+' ('+sp+')';
+    });
+    (async()=>{ for await(const v of dec.spawn()){ if(!run) break; tok('sb-comp2',v,'tb'); } })();
+  }
+  function stop(){ run=false; }
+  function reset(){ stop(); clr('sb-comp1'); clr('sb-comp2'); W.reset(); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  MERGE DEMO
+// ═══════════════════════════════════════════
+function mkMerge() {
+  let run=false;
+  const W = new Wave('cv-merge',['#9878f8','#30d8c0','#f88040']);
+  function start() {
+    if(run) return; run=true;
+    const labels=['A','B','C'], clss=['ta','tb','tc'], delays=[180,320,500];
+    const fibers = delays.map((d,i) => new Fiber(async function*(){ let n=0; while(run){await sleep(d+Math.random()*d); yield {s:i,v:n++};} },labels[i]));
+    const merged = merge(...fibers);
+    (async()=>{ for await(const {s,v} of merged.spawn()){ if(!run) break; W.push(s,Math.sin(v*.5+s)); tok('sb-merge',labels[s]+':'+v,clss[s]); } })();
+  }
+  function stop(){ run=false; }
+  function reset(){ stop(); clr('sb-merge'); W.reset(); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  CHAIN DEMO
+// ═══════════════════════════════════════════
+function mkChain() {
+  let run=false;
+  const W = new Wave('cv-chain',['#3de898']);
+  function start() {
+    if(run) return; run=true;
+    const src = new Fiber(async function*(){ let n=0; while(run){await sleep(170); yield n++;} });
+    const pipeline = src.filter(n=>n%2===0).map(n=>n*10).take(8);
+    (async()=>{ let i=0; for await(const v of pipeline.spawn()){ if(!run) break; W.push(0,Math.sin(i*.7)); tok('sb-chain',String(v),'tt'); i++; } run=false; })();
+  }
+  function stop(){ run=false; }
+  function reset(){ stop(); clr('sb-chain'); W.reset(); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  DASHBOARD DEMO
+// ═══════════════════════════════════════════
+function mkDash() {
+  let run=false, B=null, raf=null;
+  let dctx=null, dw=0, dh=0;
+  let price=150, news='Awaiting…', mood='neutral', animP=150;
+  const hist=[];
+  const MAX_H=130;
+
+  function initD(){
+    const el=document.getElementById('cv-dash');
+    if(!el) return;
+    el.width=el.parentElement.offsetWidth; el.height=el.parentElement.offsetHeight;
+    dctx=el.getContext('2d'); dw=el.width; dh=el.height;
+  }
+  function frame(){
+    if(!dctx) return;
+    dctx.clearRect(0,0,dw,dh);
+    dctx.strokeStyle='#162230'; dctx.lineWidth=1;
+    for(let x=0;x<dw;x+=60){dctx.beginPath();dctx.moveTo(x,0);dctx.lineTo(x,dh);dctx.stroke();}
+    for(let y=0;y<dh;y+=24){dctx.beginPath();dctx.moveTo(0,y);dctx.lineTo(dw,y);dctx.stroke();}
+    if(hist.length>1){
+      const mn=Math.min(...hist)-1, mx=Math.max(...hist)+1, rng=mx-mn;
+      const py=v=>dh-((v-mn)/rng)*(dh-24)-12;
+      dctx.beginPath(); dctx.strokeStyle='#3de898'; dctx.lineWidth=2;
+      dctx.shadowColor='#3de898'; dctx.shadowBlur=8;
+      hist.forEach((v,i)=>{ const x=(i/(MAX_H-1))*dw; i===0?dctx.moveTo(x,py(v)):dctx.lineTo(x,py(v)); });
+      dctx.stroke(); dctx.shadowBlur=0;
+      dctx.beginPath(); dctx.moveTo(0,dh);
+      hist.forEach((v,i)=>{ dctx.lineTo((i/(MAX_H-1))*dw, py(v)); });
+      dctx.lineTo(((hist.length-1)/(MAX_H-1))*dw,dh); dctx.closePath();
+      const g=dctx.createLinearGradient(0,0,0,dh);
+      g.addColorStop(0,'rgba(61,232,152,.16)'); g.addColorStop(1,'rgba(61,232,152,0)');
+      dctx.fillStyle=g; dctx.fill();
+    }
+    animP+=(price-animP)*.12;
+    dctx.font='bold 26px Syne,sans-serif'; dctx.fillStyle='#fff';
+    dctx.shadowColor='rgba(255,255,255,.2)'; dctx.shadowBlur=8;
+    dctx.fillText('$'+animP.toFixed(2),16,36); dctx.shadowBlur=0;
+    const mc=mood==='bullish'?'#3de898':mood==='bearish'?'#f84060':'#38b8f8';
+    dctx.beginPath(); dctx.arc(dw-22,22,10,0,Math.PI*2);
+    dctx.fillStyle=mc+'22'; dctx.fill(); dctx.strokeStyle=mc; dctx.lineWidth=1.5; dctx.stroke();
+    dctx.font='10px DM Mono,monospace'; dctx.fillStyle=mc; dctx.textAlign='center';
+    dctx.fillText(mood[0].toUpperCase(),dw-22,26); dctx.textAlign='left';
+    dctx.font='11px DM Mono,monospace'; dctx.fillStyle=mc+'cc';
+    dctx.fillText(news,16,dh-12);
+    raf=requestAnimationFrame(frame);
+  }
+  function start(){
+    if(run) return; run=true; initD();
+    const hs=['📈 Earnings beat','📉 Fed hawkish','🔔 New ATH','⚠️ Margin call','📊 Sideways','🚀 Short squeeze'];
+    const ms=['bullish','bearish','neutral'];
+    let p=150;
+    B = new Braid([
+      new Fiber(async function*(){ while(run){await sleep(80); yield (p+=(Math.random()-.48)*1.4);} },'price'),
+      new Fiber(async function*(){ let i=0; while(run){await sleep(2000); yield hs[i++%hs.length];} },'news'),
+      new Fiber(async function*(){ let i=0; while(run){await sleep(700); yield ms[i++%ms.length];} },'mood'),
+    ], {tension:Tension.Loose});
+    frame();
+    (async()=>{
+      for await(const [pv,nv,sv] of B){
+        if(!run) break;
+        price=parseFloat(pv.toFixed(2));
+        if(nv) news=nv; if(sv) mood=sv;
+        hist.push(price); if(hist.length>MAX_H) hist.shift();
+        tok('db-price','$'+price,'tt');
+        if(nv) tok('db-news',nv,'tl');
+        if(sv) tok('db-sent',sv,'tg');
+        tok('db-out','$'+price+' · '+(news||'…')+' · '+mood,'tb');
+      }
+    })();
+  }
+  function stop(){ run=false; if(B) B.fray(); if(raf) cancelAnimationFrame(raf); }
+  function reset(){ stop(); hist.length=0; price=150; animP=150; news='Awaiting…'; mood='neutral'; clr('db-price'); clr('db-news'); clr('db-sent'); clr('db-out'); if(dctx) dctx.clearRect(0,0,dw,dh); }
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════
+//  PIPELINE ANIMATION
+// ═══════════════════════════════════════════
+let pTimer=null;
+function pipeStart(){
+  pipeStop(); let i=0;
+  const ids=['pa0','pa1','pa2','pa3'];
+  function step(){
+    ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('on'); });
+    const el=document.getElementById(ids[i%ids.length]); if(el) el.classList.add('on');
+    i++; pTimer=setTimeout(step,380);
+  }
+  step();
+}
+function pipeStop(){
+  if(pTimer) clearTimeout(pTimer);
+  ['pa0','pa1','pa2','pa3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('on'); });
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+const D = {
+  tight:   mkTight(),
+  loose:   mkLoose(),
+  frayed:  mkFrayed(),
+  compose: mkCompose(),
+  merge:   mkMerge(),
+  chain:   mkChain(),
+  dash:    mkDash(),
+};
+
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on');
+  });
+});
+
+pipeStart();
+
+window.addEventListener('resize', () => {
+  ['cv-tight','cv-loose','cv-frayed','cv-compose','cv-merge','cv-chain'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.width=el.parentElement.offsetWidth; el.height=el.parentElement.offsetHeight;
+  });
+});
+</script>
+</body>
+</html>
